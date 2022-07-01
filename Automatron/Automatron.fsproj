@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<Compile Include="Console\Console.fs" />
+	<Compile Include="Agents\Persistor.fs" />
+	<Compile Include="Agents\Coordinator.fs" />
+	<Compile Include="Agents\Dispatcher.fs" />
+	<Compile Include="Agents\Worker.fs" />
+	<Compile Include="AgentBuilders\PersistorOptionsBuilder.fs" />
+	<Compile Include="AgentBuilders\DispatcherOptionsBuilder.fs" />
+	<Compile Include="AgentBuilders\WorkerOptionsBuilder.fs" />
+	<Compile Include="AgentBuilders\AgentBuilder.fs" />
+  </ItemGroup>
+
+</Project>
