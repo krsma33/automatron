@@ -1,17 +1,8 @@
 ﻿namespace Automatron.Agents
 
+open AgentTypes
+
 module Persistor =
-
-    type PersistJobResult<'TInput, 'TOutput, 'TError> =
-        | PersistJobResult of (uint * 'TInput * Result<'TOutput, 'TError> -> Async<unit>)
-
-    type RetrieveUnprocessedJobs<'TInput> = RetrieveUnprocessedJobs of (unit -> Async<'TInput list option>)
-    type PersistUnprocessedJobs<'TInput> = PersistUnprocessedJobs of ('TInput list -> Async<unit>)
-
-    type PersistorMessage<'TInput, 'TOutput, 'TError> =
-        | RetrieveNotProcessedJobs of AsyncReplyChannel<'TInput list option>
-        | PersistJobInfo of jobResult: uint * 'TInput * Result<'TOutput, 'TError>
-        | StopRequest of unprocessedJobs: 'TInput list * isStoppedReply: AsyncReplyChannel<bool>
 
     let create
         (PersistJobResult persistJobResult: PersistJobResult<'TInput, 'TOutput, 'TError>)
@@ -29,8 +20,8 @@ module Persistor =
                             let! jobs = retrieveUnprocessedJobs ()
                             rc.Reply(jobs)
                             return! loop ()
-                        | PersistJobInfo (id, input, output) ->
-                            do! persistJobResult (id, input, output)
+                        | PersistJobInfo completedJob ->
+                            do! persistJobResult completedJob
                             return! loop ()
                         | StopRequest (jobs, rc) ->
                             do! persistUnprocessedJobs jobs

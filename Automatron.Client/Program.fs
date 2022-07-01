@@ -5,6 +5,7 @@ open Automatron.PersistorOptionsBuilder
 open Automatron.DispatcherOptionsBuilder
 open Automatron.WorkerOptionsBuilder
 open Automatron.AgentBuilder
+open Automatron.Agents.AgentTypes
 
 let cts = new CancellationTokenSource()
 
@@ -24,20 +25,29 @@ let retrieveUnprocessedJobs () =
         do! Async.Sleep(500)
 
         return
-            Some [ "Robo"
-                   "Bobo"
-                   "Hobo"
-                   "Sobo"
-                   "Mobo"
-                   "Shobo"
-                   "Iobo"
-                   "Jobo" ]
+            [ "Robo"
+              "Bobo"
+              "Hobo"
+              "Sobo"
+              "Mobo"
+              "Shobo"
+              "Iobo"
+              "Jobo" ]
+            |> List.map (fun i ->
+                { Id = JobId <| Guid.NewGuid()
+                  DispatcherId = DispatcherId <| Guid.NewGuid()
+                  Dispatched = DateTimeOffset.Now
+                  Input = i })
+            |> Some
     }
 
-let persistUnprocessedJobs (input: string list) =
+let persistUnprocessedJobs (input: Job<string> list) =
     async {
         Console.warn "Persisting unprocessed..."
-        input |> List.iter Console.warn
+
+        input
+        |> List.iter (fun j -> Console.warn (sprintf "%A" j))
+
         do! Async.Sleep(1000)
         Console.warn "Persisting complete"
     }
@@ -71,13 +81,13 @@ let workerFunction (input: string) =
             return Ok($"Success: {input}")
     }
 
-let persistJobResult (input: uint * string * Result<string, Error>) =
+let persistJobResult (job: CompletedJob<_, _, _>) =
     async {
         Console.info "Archiving output..."
 
-        match input with
-        | id, i, Ok o -> Console.info (sprintf "%i: %s - %s" id i o)
-        | id, i, Error e -> Console.error (sprintf "%i: %s - %A" id i e)
+        match job.Output with
+        | Ok o -> Console.info (sprintf "%A" job)
+        | Error e -> Console.error (sprintf "%A" job)
     }
 
 let persistorOptions =

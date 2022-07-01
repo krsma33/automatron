@@ -1,17 +1,22 @@
 ﻿namespace Automatron.Agents
 
-open Coordinator
+open AgentTypes
+open System
 
 module Dispatcher =
 
     type DispatchJobs<'TInput> = DispatchJobs of (unit -> Async<'TInput list option>)
 
-    let create
-        (coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>)
-        id
-        (DispatchJobs dispatcherFunction: DispatchJobs<'TInput>)
-        =
+    let private newJob dispatcherId input =
+        { Id = JobId <| Guid.NewGuid()
+          DispatcherId = dispatcherId
+          Dispatched = DateTimeOffset.Now
+          Input = input }
+
+    let create (coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>) (DispatchJobs dispatcherFunction) =
         MailboxProcessor.Start (fun inbox ->
+
+            let id = DispatcherId <| Guid.NewGuid()
 
             coordinator.Post(RegisterDispatcher id |> DispatcherMessage)
 
@@ -28,6 +33,7 @@ module Dispatcher =
                         match result with
                         | Some v ->
                             v
+                            |> List.map (fun msg -> newJob id msg)
                             |> List.iter (fun msg -> coordinator.Post(JobRequest(msg) |> DispatcherMessage))
                         | None -> do! Async.Sleep(300)
 

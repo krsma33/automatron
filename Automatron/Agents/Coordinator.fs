@@ -1,27 +1,10 @@
 ﻿namespace Automatron.Agents
 
-open System.Collections.Generic
 open System.Threading
-open Persistor
+open System.Collections.Generic
+open AgentTypes
 
 module Coordinator =
-
-    type DispatcherMessage<'TInput> =
-        | RegisterDispatcher of id: uint
-        | JobRequest of intput: 'TInput
-        | ShouldStopDispatcher of id: uint * shouldStopReply: AsyncReplyChannel<bool>
-        | DispatcherStopped of id: uint
-
-    type WorkerMessage<'TInput> =
-        | RegisterWorker of id: uint
-        | WorkRequest of AsyncReplyChannel<'TInput option>
-        | ShouldStopWorker of id: uint * shouldStopReply: AsyncReplyChannel<bool>
-        | WorkerStopped of id: uint
-
-    type CoordinatorMessage<'TInput> =
-        | DispatcherMessage of DispatcherMessage<'TInput>
-        | WorkerMessage of WorkerMessage<'TInput>
-        | IsCompleteCheck of AsyncReplyChannel<bool>
 
     let private register id (list: ResizeArray<_>) = list.Add(id)
     let private unregister id (list: ResizeArray<_>) = list.Remove(id) |> ignore
@@ -39,7 +22,7 @@ module Coordinator =
     let create (ct: CancellationToken) (persistor: MailboxProcessor<PersistorMessage<'TInput, 'TOutput, 'TError>>) =
         MailboxProcessor<CoordinatorMessage<'TInput>>.Start
             (fun inbox ->
-                let jobsQueue = Queue<'TInput>()
+                let jobsQueue = Queue<_>()
                 let dispatchers = ResizeArray()
                 let workers = ResizeArray()
 

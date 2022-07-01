@@ -1,6 +1,6 @@
 ﻿namespace Automatron
 
-open Automatron.Agents.Persistor
+open Automatron.Agents.AgentTypes
 
 module PersistorOptionsBuilder =
 
@@ -20,19 +20,19 @@ module PersistorOptionsBuilder =
           PersistUnprocessedJobsFunction = None }
 
     let configurePersistJobResult
-        (func: uint * 'TInput * Result<'TOutput, 'TError> -> Async<unit>)
+        (func: CompletedJob<'TInput, 'TOutput, 'TError> -> Async<unit>)
         (opts: PersistorOptionsBuilder<'TInput, 'TOutput, 'TError>)
         =
         { opts with PersistJobResultFunction = Some <| PersistJobResult func }
 
     let configureRetrieveUnprocessedJobs
-        (func: unit -> Async<'TInput list option>)
+        (func: unit -> Async<Job<'TInput> list option>)
         (opts: PersistorOptionsBuilder<'TInput, 'TOutput, 'TError>)
         =
         { opts with RetrieveUnprocessedJobsFunction = Some <| RetrieveUnprocessedJobs func }
 
     let configurePersistUnprocessedJobs
-        (func: 'TInput list -> Async<unit>)
+        (func: Job<'TInput> list -> Async<unit>)
         (opts: PersistorOptionsBuilder<'TInput, 'TOutput, 'TError>)
         =
         { opts with PersistUnprocessedJobsFunction = Some <| PersistUnprocessedJobs func }

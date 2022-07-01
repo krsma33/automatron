@@ -8,7 +8,7 @@ open WorkerOptionsBuilder
 
 open Automatron.Agents
 open Automatron.Agents.Coordinator
-open Automatron.Agents.Persistor
+open Automatron.Agents.AgentTypes
 
 module AgentBuilder =
 
@@ -56,7 +56,7 @@ module AgentBuilder =
         (dispatcherBuildOptions: DispatcherBuildOptions<'TInput>)
         =
         [ 1u .. dispatcherBuildOptions.DegreeOfParallelisation ]
-        |> List.map (fun n -> Dispatcher.create coordinator n dispatcherBuildOptions.DispatchFunction)
+        |> List.map (fun _ -> Dispatcher.create coordinator dispatcherBuildOptions.DispatchFunction)
 
     let private initWorkers
         (coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>)
@@ -64,7 +64,7 @@ module AgentBuilder =
         (workerBuildOptions: WorkerBuildOptions<'TInput, 'TOutput, 'TError>)
         =
         [ 1u .. workerBuildOptions.DegreeOfParallelisation ]
-        |> List.map (fun n -> Worker.create coordinator persistor n workerBuildOptions.WorkFunction)
+        |> List.map (fun _ -> Worker.create coordinator persistor workerBuildOptions.WorkFunction)
 
     let startAgents (ct: CancellationToken) (opts: AgentBuilder<'TInput, 'TOutput, 'TError>) =
         let persistorBuildOptions =
