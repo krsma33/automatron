@@ -5,8 +5,6 @@ open System
 
 module Dispatcher =
 
-    type DispatchJobs<'TInput> = DispatchJobs of (unit -> Async<'TInput list option>)
-
     let private newJob dispatcherId input =
         { Id = JobId <| Guid.NewGuid()
           DispatcherId = dispatcherId
@@ -28,16 +26,19 @@ module Dispatcher =
                     match shouldStop with
                     | true -> coordinator.Post(DispatcherStopped id |> DispatcherMessage)
                     | false ->
-                        let! result = dispatcherFunction ()
+                        let! result = dispatcherFunction () |> Async.Catch
 
                         match result with
-                        | Some v ->
-                            v
-                            |> List.map (fun msg -> newJob id msg)
-                            |> List.iter (fun msg -> coordinator.Post(JobRequest(msg) |> DispatcherMessage))
-                        | None -> do! Async.Sleep(300)
+                        | Choice1Of2 r ->
+                            match r with
+                            | Some v ->
+                                v
+                                |> List.map (fun msg -> newJob id msg)
+                                |> List.iter (fun msg -> coordinator.Post(JobRequest(msg) |> DispatcherMessage))
+                            | None -> do! Async.Sleep(300)
 
-                        return! loop ()
+                            return! loop ()
+                        | Choice2Of2 e -> coordinator.Post(DispatcherStopped id |> DispatcherMessage)
                 }
 
             loop ())

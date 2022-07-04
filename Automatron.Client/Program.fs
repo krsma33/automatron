@@ -9,11 +9,19 @@ open Automatron.Agents.AgentTypes
 
 let cts = new CancellationTokenSource()
 
-AppDomain.CurrentDomain.ProcessExit.Add(fun _ -> cts.Cancel())
+AppDomain.CurrentDomain.ProcessExit.Add (fun _ ->
+    if not cts.Token.IsCancellationRequested then
+        Console.info "Graceful stop requested..."
+        cts.Cancel())
 
 System.Console.CancelKeyPress.Add (fun e ->
-    e.Cancel <- true
-    cts.Cancel())
+    if not cts.Token.IsCancellationRequested then
+        Console.info "Graceful stop requested..."
+        e.Cancel <- true
+        cts.Cancel()
+    else
+        Console.info "Force stop requested..."
+        e.Cancel <- false)
 
 type Error =
     | BusinessError of string
@@ -56,7 +64,7 @@ let dispatcherFunction () =
     async {
         Console.info "Dispatching..."
         do! Async.Sleep(5000)
-
+        
         return
             Some [ "F"
                    "A"
@@ -73,9 +81,14 @@ let workerFunction (input: string) =
         let rnd = new Random()
         do! Async.Sleep(1000)
 
-        if rnd.Next(100) % 7 = 0 then
+        let n = rnd.Next(100)
+
+        if n % 7 = 0 then
             Console.error $"Some random error"
             return Error(BusinessError "Some random error")
+        elif n % 13 = 0 then
+            failwith "Hoho Haha forced"
+            return Error(RuntimeError "Hoho Haha forced")
         else
             Console.info $"Success: {input}"
             return Ok($"Success: {input}")
@@ -86,8 +99,9 @@ let persistJobResult (job: CompletedJob<_, _, _>) =
         Console.info "Archiving output..."
 
         match job.Output with
-        | Ok o -> Console.info (sprintf "%A" job)
-        | Error e -> Console.error (sprintf "%A" job)
+        | Success o -> Console.info (sprintf "%A" job)
+        | BusinessRuleFailiure e -> Console.warn (sprintf "%A" job)
+        | RuntimeFailiure e -> Console.error (sprintf "%A" job)
     }
 
 let persistorOptions =

@@ -5,9 +5,7 @@ open System
 
 module Worker =
 
-    type ProcessJob<'TInput, 'TOutput, 'TError> = ProcessJob of ('TInput -> Async<Result<'TOutput, 'TError>>)
-
-    let completedJob workerId started completed output (job: Job<'TInput>) =
+    let private completedJob workerId started completed output (job: Job<'TInput>) =
         { Id = job.Id
           DispatcherId = job.DispatcherId
           Dispatched = job.Dispatched
@@ -17,10 +15,33 @@ module Worker =
           Completed = completed
           Output = output }
 
+    let private tryWorkerFunction (job: Job<'TInput>) (ProcessJob workerFunction) =
+        async {
+            let! output = workerFunction job.Input |> Async.Catch
+
+            match output with
+            | Choice1Of2 r ->
+                match r with
+                | Ok v -> return Success v
+                | Error e -> return BusinessRuleFailiure e
+            | Choice2Of2 e -> return RuntimeFailiure e
+        }
+
+    let private processJob id workerFunction (job: Job<'TInput>) =
+        async {
+            let started = DateTimeOffset.Now
+
+            let! output = workerFunction |> tryWorkerFunction job
+
+            let completed = DateTimeOffset.Now
+
+            return job |> completedJob id started completed output
+        }
+
     let create
         (coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>)
         (persistor: MailboxProcessor<PersistorMessage<'TInput, 'TOutput, 'TError>>)
-        (ProcessJob workerFunction)
+        workerFunction
         =
         MailboxProcessor.Start (fun inbox ->
 
@@ -39,11 +60,8 @@ module Worker =
 
                         match response with
                         | Some job ->
-                            let started = DateTimeOffset.Now
-                            let! output = workerFunction job.Input
-                            let completed = DateTimeOffset.Now
-                            let finishedJob = job |> completedJob id started completed output
-                            persistor.Post(PersistJobInfo(finishedJob))
+                            let! completedJob = processJob id workerFunction job
+                            persistor.Post(PersistJobInfo(completedJob))
                         | None -> do! Async.Sleep(300)
 
                         return! loop ()

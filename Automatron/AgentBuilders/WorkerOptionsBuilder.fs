@@ -1,6 +1,6 @@
 ﻿namespace Automatron
 
-open Automatron.Agents.Worker
+open Automatron.Agents.AgentTypes
 
 module WorkerOptionsBuilder =
 

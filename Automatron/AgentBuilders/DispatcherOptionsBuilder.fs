@@ -1,6 +1,6 @@
 ﻿namespace Automatron
 
-open Automatron.Agents.Dispatcher
+open Automatron.Agents.AgentTypes
 
 module DispatcherOptionsBuilder =
 

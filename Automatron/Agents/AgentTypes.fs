@@ -5,37 +5,46 @@ open System
 module AgentTypes =
 
     [<AutoOpen>]
+    module GeneralTypes =
+
+        [<Struct>]
+        type OutputResult<'TOutput, 'TError> =
+            | Success of SuccessValue: 'TOutput
+            | BusinessRuleFailiure of BusinessRuleFailiureValue: 'TError
+            | RuntimeFailiure of exn
+
+    [<AutoOpen>]
     module DispatcherTypes =
 
         type DispatcherId = DispatcherId of Guid
+        type DispatchJobs<'TInput> = DispatchJobs of (unit -> Async<'TInput list option>)
 
     [<AutoOpen>]
     module WorkerTypes =
 
         type WorkerId = WorkerId of Guid
+        type ProcessJob<'TInput, 'TOutput, 'TError> = ProcessJob of ('TInput -> Async<Result<'TOutput, 'TError>>)
 
     [<AutoOpen>]
     module CoordinatorTypes =
-        
+
         type JobId = JobId of Guid
 
-        type Job<'TInput> = {
-            Id: JobId
-            DispatcherId: DispatcherId
-            Dispatched: DateTimeOffset
-            Input: 'TInput
-        }
+        type Job<'TInput> =
+            { Id: JobId
+              DispatcherId: DispatcherId
+              Dispatched: DateTimeOffset
+              Input: 'TInput }
 
-        type CompletedJob<'TInput, 'TOutput, 'TError> = {
-            Id: JobId
-            DispatcherId: DispatcherId
-            Dispatched: DateTimeOffset
-            Input: 'TInput
-            WorkerId: WorkerId
-            Started: DateTimeOffset
-            Completed: DateTimeOffset
-            Output: Result<'TOutput,'TError>
-        }
+        type CompletedJob<'TInput, 'TOutput, 'TError> =
+            { Id: JobId
+              DispatcherId: DispatcherId
+              Dispatched: DateTimeOffset
+              Input: 'TInput
+              WorkerId: WorkerId
+              Started: DateTimeOffset
+              Completed: DateTimeOffset
+              Output: OutputResult<'TOutput, 'TError> }
 
         type DispatcherMessage<'TInput> =
             | RegisterDispatcher of DispatcherId
@@ -66,4 +75,4 @@ module AgentTypes =
         type PersistorMessage<'TInput, 'TOutput, 'TError> =
             | RetrieveNotProcessedJobs of AsyncReplyChannel<Job<'TInput> list option>
             | PersistJobInfo of CompletedJob<'TInput, 'TOutput, 'TError>
-            | StopRequest of unprocessedJobs: Job<'TInput>list * isStoppedReply: AsyncReplyChannel<bool>
+            | StopRequest of unprocessedJobs: Job<'TInput> list * isStoppedReply: AsyncReplyChannel<bool>
