@@ -6,8 +6,9 @@ module Persistor =
 
     let create
         (PersistJobResult persistJobResult: PersistJobResult<'TInput, 'TOutput, 'TError>)
+        (RetrieveCompletedJobs retrieveCompletedJobs: RetrieveCompletedJobs<'TInput, 'TOutput, 'TError>)
         (RetrieveUnprocessedJobs retrieveUnprocessedJobs: RetrieveUnprocessedJobs<'TInput>)
-        (PersistUnprocessedJobs persistUnprocessedJobs: PersistUnprocessedJobs<'TInput> )
+        (PersistUnprocessedJobs persistUnprocessedJobs: PersistUnprocessedJobs<'TInput>)
         =
         MailboxProcessor<PersistorMessage<'TInput, 'TOutput, 'TError>>.Start
             (fun inbox ->
@@ -19,6 +20,10 @@ module Persistor =
                         | RetrieveNotProcessedJobs rc ->
                             let! jobs = retrieveUnprocessedJobs ()
                             rc.Reply(jobs)
+                            return! loop ()
+                        | RetrieveCompletedJobsInfo (completedFrom,completedTo,rc) ->
+                            let! completedJobs = retrieveCompletedJobs completedFrom completedTo
+                            rc.Reply(completedJobs)
                             return! loop ()
                         | PersistJobInfo completedJob ->
                             do! persistJobResult completedJob

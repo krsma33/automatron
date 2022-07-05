@@ -24,7 +24,12 @@ module Worker =
                 match r with
                 | Ok v -> return Success v
                 | Error e -> return BusinessRuleFailiure e
-            | Choice2Of2 e -> return RuntimeFailiure e
+            | Choice2Of2 e ->
+                return
+                    RuntimeFailiure
+                        { ExceptionMessage = e.Message
+                          ExceptionType = e.GetType().FullName
+                          StackTrace = e.StackTrace }
         }
 
     let private processJob id workerFunction (job: Job<'TInput>) =

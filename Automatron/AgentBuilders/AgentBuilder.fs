@@ -48,6 +48,7 @@ module AgentBuilder =
     let private initPersistor (persistorBuildOptions: PersistorBuildOptions<'TInput, 'TOutput, 'TError>) =
         Persistor.create
             persistorBuildOptions.PersistJobResultFunction
+            persistorBuildOptions.RetrieveCompletedJobs
             persistorBuildOptions.RetrieveUnprocessedJobsFunction
             persistorBuildOptions.PersistUnprocessedJobsFunction
 

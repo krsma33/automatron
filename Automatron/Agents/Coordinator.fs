@@ -63,10 +63,7 @@ module Coordinator =
                 let initialize () =
                     async {
                         let! jobs = persistor.PostAndAsyncReply(fun rc -> RetrieveNotProcessedJobs rc)
-
-                        match jobs with
-                        | Some job -> job |> List.iter (fun j -> jobsQueue |> enqueue j)
-                        | None -> ()
+                        jobs |> List.iter (fun j -> jobsQueue |> enqueue j)
                     }
 
                 let finalize () =

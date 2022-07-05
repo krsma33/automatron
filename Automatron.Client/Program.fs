@@ -1,11 +1,10 @@
 ﻿open System
 open System.Threading
 open Automatron
-open Automatron.PersistorOptionsBuilder
+open Automatron.Repository.LiteDB
 open Automatron.DispatcherOptionsBuilder
 open Automatron.WorkerOptionsBuilder
 open Automatron.AgentBuilder
-open Automatron.Agents.AgentTypes
 
 let cts = new CancellationTokenSource()
 
@@ -27,53 +26,22 @@ type Error =
     | BusinessError of string
     | RuntimeError of string
 
-let retrieveUnprocessedJobs () =
-    async {
-        Console.info "Retrieving unprocessed..."
-        do! Async.Sleep(500)
-
-        return
-            [ "Robo"
-              "Bobo"
-              "Hobo"
-              "Sobo"
-              "Mobo"
-              "Shobo"
-              "Iobo"
-              "Jobo" ]
-            |> List.map (fun i ->
-                { Id = JobId <| Guid.NewGuid()
-                  DispatcherId = DispatcherId <| Guid.NewGuid()
-                  Dispatched = DateTimeOffset.Now
-                  Input = i })
-            |> Some
-    }
-
-let persistUnprocessedJobs (input: Job<string> list) =
-    async {
-        Console.warn "Persisting unprocessed..."
-
-        input
-        |> List.iter (fun j -> Console.warn (sprintf "%A" j))
-
-        do! Async.Sleep(1000)
-        Console.warn "Persisting complete"
-    }
-
 let dispatcherFunction () =
     async {
         Console.info "Dispatching..."
         do! Async.Sleep(5000)
-        
-        return
-            Some [ "F"
+
+(*        return Some 
+                 [ "F"
                    "A"
                    "V"
                    "O"
                    "R"
                    "I"
                    "T"
-                   "O" ]
+                   "O" ]*)
+
+        return None
     }
 
 let workerFunction (input: string) =
@@ -87,29 +55,15 @@ let workerFunction (input: string) =
             Console.error $"Some random error"
             return Error(BusinessError "Some random error")
         elif n % 13 = 0 then
-            failwith "Hoho Haha forced"
+            Console.error $"Hoho Haha forced"
+            raise (new ArgumentNullException("Some Param","Hoho Haha forced"))
             return Error(RuntimeError "Hoho Haha forced")
         else
             Console.info $"Success: {input}"
             return Ok($"Success: {input}")
     }
 
-let persistJobResult (job: CompletedJob<_, _, _>) =
-    async {
-        Console.info "Archiving output..."
-
-        match job.Output with
-        | Success o -> Console.info (sprintf "%A" job)
-        | BusinessRuleFailiure e -> Console.warn (sprintf "%A" job)
-        | RuntimeFailiure e -> Console.error (sprintf "%A" job)
-    }
-
-let persistorOptions =
-    persistorOptionsBuilder
-    |> configurePersistJobResult persistJobResult
-    |> configureRetrieveUnprocessedJobs retrieveUnprocessedJobs
-    |> configurePersistUnprocessedJobs persistUnprocessedJobs
-    |> buildPersistorOptions
+let persistorOptions = LiteDbPersistor.initDefaultOptions()
 
 let dispatcherOptions =
     dispatcherOptionsBuilder

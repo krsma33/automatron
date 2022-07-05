@@ -7,11 +7,16 @@ module AgentTypes =
     [<AutoOpen>]
     module GeneralTypes =
 
+        type RuntimeFailiure =
+            { ExceptionType: string
+              ExceptionMessage: string
+              StackTrace: string }
+
         [<Struct>]
         type OutputResult<'TOutput, 'TError> =
             | Success of SuccessValue: 'TOutput
             | BusinessRuleFailiure of BusinessRuleFailiureValue: 'TError
-            | RuntimeFailiure of exn
+            | RuntimeFailiure of RuntimeFailiure
 
     [<AutoOpen>]
     module DispatcherTypes =
@@ -39,11 +44,11 @@ module AgentTypes =
         type CompletedJob<'TInput, 'TOutput, 'TError> =
             { Id: JobId
               DispatcherId: DispatcherId
-              Dispatched: DateTimeOffset
-              Input: 'TInput
               WorkerId: WorkerId
+              Dispatched: DateTimeOffset
               Started: DateTimeOffset
               Completed: DateTimeOffset
+              Input: 'TInput
               Output: OutputResult<'TOutput, 'TError> }
 
         type DispatcherMessage<'TInput> =
@@ -69,10 +74,14 @@ module AgentTypes =
         type PersistJobResult<'TInput, 'TOutput, 'TError> =
             | PersistJobResult of (CompletedJob<'TInput, 'TOutput, 'TError> -> Async<unit>)
 
-        type RetrieveUnprocessedJobs<'TInput> = RetrieveUnprocessedJobs of (unit -> Async<Job<'TInput> list option>)
+        type RetrieveCompletedJobs<'TInput, 'TOutput, 'TError> =
+            | RetrieveCompletedJobs of (DateTimeOffset -> DateTimeOffset -> Async<CompletedJob<'TInput, 'TOutput, 'TError> list>)
+
+        type RetrieveUnprocessedJobs<'TInput> = RetrieveUnprocessedJobs of (unit -> Async<Job<'TInput> list>)
         type PersistUnprocessedJobs<'TInput> = PersistUnprocessedJobs of (Job<'TInput> list -> Async<unit>)
 
         type PersistorMessage<'TInput, 'TOutput, 'TError> =
-            | RetrieveNotProcessedJobs of AsyncReplyChannel<Job<'TInput> list option>
+            | RetrieveNotProcessedJobs of AsyncReplyChannel<Job<'TInput> list>
+            | RetrieveCompletedJobsInfo of completedFrom:DateTimeOffset * completedTo:DateTimeOffset * AsyncReplyChannel<CompletedJob<'TInput, 'TOutput, 'TError> list>
             | PersistJobInfo of CompletedJob<'TInput, 'TOutput, 'TError>
             | StopRequest of unprocessedJobs: Job<'TInput> list * isStoppedReply: AsyncReplyChannel<bool>
