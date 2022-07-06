@@ -1,26 +1,11 @@
 ﻿open System
-open System.Threading
 open Automatron
 open Automatron.Repository.LiteDB
 open Automatron.DispatcherOptionsBuilder
 open Automatron.WorkerOptionsBuilder
 open Automatron.AgentBuilder
-
-let cts = new CancellationTokenSource()
-
-AppDomain.CurrentDomain.ProcessExit.Add (fun _ ->
-    if not cts.Token.IsCancellationRequested then
-        Console.info "Graceful stop requested..."
-        cts.Cancel())
-
-System.Console.CancelKeyPress.Add (fun e ->
-    if not cts.Token.IsCancellationRequested then
-        Console.info "Graceful stop requested..."
-        e.Cancel <- true
-        cts.Cancel()
-    else
-        Console.info "Force stop requested..."
-        e.Cancel <- false)
+open System.Threading
+open Automatron.Helpers
 
 type Error =
     | BusinessError of string
@@ -63,6 +48,10 @@ let workerFunction (input: string) =
             return Ok($"Success: {input}")
     }
 
+let cts = new CancellationTokenSource()
+
+GracefulShutdown.register(cts)
+
 let persistorOptions = LiteDbPersistor.initDefaultOptions()
 
 let dispatcherOptions =
@@ -77,10 +66,14 @@ let workerOptions =
     |> configureWorkerDegreeOfParallelisation 3u
     |> buildWorkerOptions
 
-let _ =
+let agents =
     agentBuilder
     |> configurePersistor persistorOptions
     |> configureDispatchers dispatcherOptions
     |> configureWorkers workerOptions
-    |> startAgents cts.Token
+    |> buildAgents cts.Token
+
+let _ =
+    agents
+    |> startAgents
     |> Async.RunSynchronously

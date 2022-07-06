@@ -48,7 +48,7 @@ module Worker =
         (persistor: MailboxProcessor<PersistorMessage<'TInput, 'TOutput, 'TError>>)
         workerFunction
         =
-        MailboxProcessor.Start (fun inbox ->
+        new MailboxProcessor<_>(fun _ ->
 
             let id = WorkerId <| Guid.NewGuid()
 

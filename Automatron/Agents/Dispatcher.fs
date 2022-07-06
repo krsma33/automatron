@@ -12,7 +12,7 @@ module Dispatcher =
           Input = input }
 
     let create (coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>) (DispatchJobs dispatcherFunction) =
-        MailboxProcessor.Start (fun inbox ->
+        new MailboxProcessor<_>(fun _ ->
 
             let id = DispatcherId <| Guid.NewGuid()
 

@@ -17,6 +17,12 @@ module AgentBuilder =
           DispatcherBuildOptions: DispatcherBuildOptions<'TInput> option
           WorkerBuildOptions: WorkerBuildOptions<'TInput, 'TOutput, 'TError> option }
 
+    type Agents<'TInput, 'TOutput, 'TError> =
+        { Coordinator: MailboxProcessor<CoordinatorMessage<'TInput>>
+          Persistor: MailboxProcessor<PersistorMessage<'TInput, 'TOutput, 'TError>>
+          Dispatchers: MailboxProcessor<obj> list
+          Workers: MailboxProcessor<obj> list }
+
     let agentBuilder =
         { PersistorBuildOptions = None
           DispatcherBuildOptions = None
@@ -28,10 +34,7 @@ module AgentBuilder =
         =
         { opts with PersistorBuildOptions = Some pbo }
 
-    let configureDispatchers
-        (dbo: DispatcherBuildOptions<'TInput>)
-        (opts: AgentBuilder<'TInput, 'TOutput, 'TError>)
-        =
+    let configureDispatchers (dbo: DispatcherBuildOptions<'TInput>) (opts: AgentBuilder<'TInput, 'TOutput, 'TError>) =
         { opts with DispatcherBuildOptions = Some dbo }
 
     let configureWorkers
@@ -67,7 +70,8 @@ module AgentBuilder =
         [ 1u .. workerBuildOptions.DegreeOfParallelisation ]
         |> List.map (fun _ -> Worker.create coordinator persistor workerBuildOptions.WorkFunction)
 
-    let startAgents (ct: CancellationToken) (opts: AgentBuilder<'TInput, 'TOutput, 'TError>) =
+    let buildAgents (ct: CancellationToken) (opts: AgentBuilder<'TInput, 'TOutput, 'TError>) =
+
         let persistorBuildOptions =
             opts.PersistorBuildOptions
             |> validateOption "PersistorBuildOptions"
@@ -81,14 +85,33 @@ module AgentBuilder =
             |> validateOption "WorkerBuildOptions"
 
         let persistor = persistorBuildOptions |> initPersistor
-        let coordinator = persistor |> Coordinator.create ct
 
-        let _dispatchers =
+        let coordinator = Coordinator.create ct persistor
+
+        let dispatchers =
             dispatcherBuildOptions
             |> initDispatchers coordinator
 
-        let _workers =
+        let workers =
             workerBuildOptions
             |> initWorkers coordinator persistor
+
+        { Coordinator = coordinator
+          Persistor = persistor
+          Dispatchers = dispatchers
+          Workers = workers }
+
+    let startAgents (agents: Agents<'TInput, 'TOutput, 'TError>) =
+        let persistor = agents.Persistor
+        let coordinator = agents.Coordinator
+        let dispatchers = agents.Dispatchers
+        let workers = agents.Workers
+
+        persistor.Start()
+        coordinator.Start()
+
+        dispatchers |> List.iter (fun d -> d.Start())
+
+        workers |> List.iter (fun w -> w.Start())
 
         coordinator |> waitCompletion

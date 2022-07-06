@@ -7,6 +7,7 @@
 
   <ItemGroup>
 	<Compile Include="Console\Console.fs" />
+	<Compile Include="Helpers\GracefulShutdown.fs" />
 	<Compile Include="Agents\AgentTypes.fs" />
 	<Compile Include="Agents\Persistor.fs" />
 	<Compile Include="Agents\Coordinator.fs" />
