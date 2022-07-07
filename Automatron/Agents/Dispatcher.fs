@@ -26,7 +26,7 @@ module Dispatcher =
                     match shouldStop with
                     | true -> coordinator.Post(DispatcherStopped id |> DispatcherMessage)
                     | false ->
-                        let! result = dispatcherFunction () |> Async.Catch
+                        let! result = dispatcherFunction id |> Async.Catch
 
                         match result with
                         | Choice1Of2 r ->

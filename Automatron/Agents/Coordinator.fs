@@ -115,7 +115,7 @@ module Coordinator =
 
         let rec loop () =
             async {
-                let! b = coordinator.PostAndAsyncReply(fun rc -> IsCompleteCheck rc)
+                let! b = coordinator.PostAndAsyncReply((fun rc -> IsCompleteCheck rc), 30000)
 
                 match b with
                 | true -> ()

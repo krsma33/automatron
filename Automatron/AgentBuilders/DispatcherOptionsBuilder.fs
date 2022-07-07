@@ -16,7 +16,7 @@ module DispatcherOptionsBuilder =
         { DispatchFunction = None
           DegreeOfParallelisation = 1u }
 
-    let configureDispatchFunction (func: unit -> Async<'TInput list option>) (opts: DispatcherOptionsBuilder<'TInput>) =
+    let configureDispatchFunction (func: DispatcherId -> Async<'TInput list option>) (opts: DispatcherOptionsBuilder<'TInput>) =
         { opts with DispatchFunction = Some <| DispatchJobs func }
 
     let configureDispatcherDegreeOfParallelisation (dop: uint) (opts: DispatcherOptionsBuilder<'TInput>) =

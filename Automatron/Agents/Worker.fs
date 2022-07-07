@@ -15,9 +15,9 @@ module Worker =
           Completed = completed
           Output = output }
 
-    let private tryWorkerFunction (job: Job<'TInput>) (ProcessJob workerFunction) =
+    let private tryWorkerFunction (id, input) (ProcessJob workerFunction) =
         async {
-            let! output = workerFunction job.Input |> Async.Catch
+            let! output = workerFunction (id, input) |> Async.Catch
 
             match output with
             | Choice1Of2 r ->
@@ -32,11 +32,11 @@ module Worker =
                           StackTrace = e.StackTrace }
         }
 
-    let private processJob id workerFunction (job: Job<'TInput>) =
+    let private processJob workerFunction (id, job:Job<'TInput>) =
         async {
             let started = DateTimeOffset.Now
 
-            let! output = workerFunction |> tryWorkerFunction job
+            let! output = workerFunction |> tryWorkerFunction (id, job.Input)
 
             let completed = DateTimeOffset.Now
 
@@ -65,7 +65,7 @@ module Worker =
 
                         match response with
                         | Some job ->
-                            let! completedJob = processJob id workerFunction job
+                            let! completedJob = processJob workerFunction (id, job)
                             persistor.Post(PersistJobInfo(completedJob))
                         | None -> do! Async.Sleep(300)
 

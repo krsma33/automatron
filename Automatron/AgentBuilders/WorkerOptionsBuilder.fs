@@ -17,7 +17,7 @@ module WorkerOptionsBuilder =
           DegreeOfParallelisation = 1u }
 
     let configureWorkFunction
-        (func: 'TInput -> Async<Result<'TOutput, 'TError>>)
+        (func: WorkerId * 'TInput -> Async<Result<'TOutput, 'TError>>)
         (opts: WorkerOptionsBuilder<'TInput, 'TOutput, 'TError>)
         =
         { opts with WorkFunction = Some <| ProcessJob func }

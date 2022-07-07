@@ -22,13 +22,13 @@ module AgentTypes =
     module DispatcherTypes =
 
         type DispatcherId = DispatcherId of Guid
-        type DispatchJobs<'TInput> = DispatchJobs of (unit -> Async<'TInput list option>)
+        type DispatchJobs<'TInput> = DispatchJobs of (DispatcherId -> Async<'TInput list option>)
 
     [<AutoOpen>]
     module WorkerTypes =
 
         type WorkerId = WorkerId of Guid
-        type ProcessJob<'TInput, 'TOutput, 'TError> = ProcessJob of ('TInput -> Async<Result<'TOutput, 'TError>>)
+        type ProcessJob<'TInput, 'TOutput, 'TError> = ProcessJob of (WorkerId * 'TInput -> Async<Result<'TOutput, 'TError>>)
 
     [<AutoOpen>]
     module CoordinatorTypes =
