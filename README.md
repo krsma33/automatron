@@ -8,7 +8,8 @@ Framework is supposed to support resilient processing by automating persisting o
 
 ## Projects/packages ##
 
-Solution consists of multiple projects
+Solution consists of multiple projects:
+
 * Automatron - Main framework library
 * Automatron.Repository.LiteDB - Out of the box local db persistance using LiteDB.
 * Automatron.Web - Helper funcitions for using Microsoft.Playwright correctly
@@ -18,6 +19,7 @@ Solution consists of multiple projects
 ## Planned Features ##
 
 Future features in no particular order (in pipeline):
+
 * Automatic reporting
 * Retry of failed items
 * Work mode Configuration options (currently supports only infinite loop with explicit graceful shutdown)
