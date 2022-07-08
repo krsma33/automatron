@@ -4,13 +4,16 @@ open Automatron
 open Automatron.Agents.AgentTypes
 
 module Dispatcher =
-
+    
+    // if using only 1 dispatcher this is valid code for dispatching only once, for multiple dispatchers other solution may be required e.g SemaphoreSlim
     let mutable private dispatched = false
 
-    /// Function which is supposed to dispatch items (e.g. rea'd email, parse it and return a result)
+    /// Function which is supposed to dispatch items (e.g. read email, parse it and return a result)
     let dispatcherFunction (id: DispatcherId) =
         async {
             Console.info $"{id} Trying to dispatch..."
+
+            // Faking long running operation
             do! Async.Sleep(5000)
 
             match dispatched with

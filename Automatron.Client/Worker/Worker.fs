@@ -13,6 +13,8 @@ module Worker =
         | BusinessError of string
         | RuntimeError of string
 
+    let rnd = new Random()
+
     let browseGoogle (id: WorkerId) (input: string) (browserContext: IBrowserContext) =
         task {
 
@@ -42,8 +44,7 @@ module Worker =
 
             let results = Array.distinct results
 
-            let rnd = new Random()
-
+            // Faking some exceptions / business rule exceptions
             let n = rnd.Next(100)
 
             if n % 7 = 0 then
@@ -57,7 +58,8 @@ module Worker =
                 Console.info $"{id} Success: {input} - results number: {results.Length}"
                 return Ok(results)
         }
-
+    
+    /// Function which is used to process single transaction item
     let workerFunction (id: WorkerId, input: string) =
         task {
             return!

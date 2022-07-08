@@ -1,7 +1,8 @@
 ﻿namespace Automatron.Web
 
-open Microsoft.Playwright
+open System.Threading
 open System.Threading.Tasks
+open Microsoft.Playwright
 
 module MsPlaywright =
 
@@ -11,6 +12,8 @@ module MsPlaywright =
         | Edge
         | Firefox
         | Webkit
+
+    let private semaphoreSlim = new SemaphoreSlim(1, 1);
 
     let mutable private playwright = None
     let mutable private chromiumBrowser = None
@@ -48,45 +51,50 @@ module MsPlaywright =
                 | Firefox -> playwright.Firefox.LaunchAsync(opts)
                 | Webkit -> playwright.Webkit.LaunchAsync(opts)
         }
-
+    
     let getBrowser (kind: Browser) =
         task {
-            match kind with
-            | Chromium ->
-                match chromiumBrowser with
-                | None ->
-                    let! brws = initBrowser kind
-                    chromiumBrowser <- Some brws
-                    return brws
-                | Some b -> return b
-            | Chrome ->
-                match chromeBrowser with
-                | None ->
-                    let! brws = initBrowser kind
-                    chromeBrowser <- Some brws
-                    return brws
-                | Some b -> return b
-            | Edge ->
-                match edgeBrowser with
-                | None ->
-                    let! brws = initBrowser kind
-                    edgeBrowser <- Some brws
-                    return brws
-                | Some b -> return b
-            | Firefox ->
-                match firefoxBrowser with
-                | None ->
-                    let! brws = initBrowser kind
-                    firefoxBrowser <- Some brws
-                    return brws
-                | Some b -> return b
-            | Webkit ->
-                match webkitBrowser with
-                | None ->
-                    let! brws = initBrowser kind
-                    webkitBrowser <- Some brws
-                    return brws
-                | Some b -> return b
+            // SemaphoreSlim is used so that only 1 thread initializes the Playwright and that only 1 thread can create 1 type of browser instance
+            do! semaphoreSlim.WaitAsync()
+            try
+                match kind with
+                | Chromium ->
+                    match chromiumBrowser with
+                    | None ->
+                        let! brws = initBrowser kind
+                        chromiumBrowser <- Some brws
+                        return brws
+                    | Some b -> return b
+                | Chrome ->
+                    match chromeBrowser with
+                    | None ->
+                        let! brws = initBrowser kind
+                        chromeBrowser <- Some brws
+                        return brws
+                    | Some b -> return b
+                | Edge ->
+                    match edgeBrowser with
+                    | None ->
+                        let! brws = initBrowser kind
+                        edgeBrowser <- Some brws
+                        return brws
+                    | Some b -> return b
+                | Firefox ->
+                    match firefoxBrowser with
+                    | None ->
+                        let! brws = initBrowser kind
+                        firefoxBrowser <- Some brws
+                        return brws
+                    | Some b -> return b
+                | Webkit ->
+                    match webkitBrowser with
+                    | None ->
+                        let! brws = initBrowser kind
+                        webkitBrowser <- Some brws
+                        return brws
+                    | Some b -> return b
+            finally
+                semaphoreSlim.Release() |> ignore
         }
 
     let getBrowserContext (getBrowser: Task<IBrowser>) =
@@ -107,6 +115,7 @@ module MsPlaywright =
             return! browserContext.NewPageAsync()
         }
 
+    /// Cleanup task should be called at end to dispose of all singleton instances
     let cleanup () =
         task {
             match chromiumBrowser with
@@ -132,4 +141,6 @@ module MsPlaywright =
             match playwright with
             | None -> ()
             | Some b -> b.Dispose()
+
+            semaphoreSlim.Dispose()
         }
